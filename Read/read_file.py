@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
-import re
 
 # 认证逻辑封装
 def check_password():
     correct_pass = st.secrets.get("PASSWORD", "")
-    
+
     # 初始化认证状态和错误次数
     if "auth" not in st.session_state:
         st.session_state.auth = False
@@ -41,24 +40,6 @@ def load_data():
         st.error(f"加载数据时发生错误: {e}")
         return pd.DataFrame()
 
-# 提取题干部分的函数
-def extract_question_content(input_text):
-    # 使用正则表达式来提取题干（假设题干是冒号前的部分）
-    # 例如： "下列选项中那个是A（）:" -> "下列选项中那个是A"
-    question_list = []
-    
-    # 分割输入文本，按每个问题来处理
-    problems = input_text.split("\n\n")  # 每两个空行分割问题
-
-    for problem in problems:
-        # 去除问题的选项部分（假设每个问题的选项是以 'AA.' 等标记）
-        # 使用正则去掉每个选项的部分，提取题干
-        match = re.match(r"([^\n]+?)(?=\s*[A-Z]+\.)", problem)  # 匹配题干部分
-        if match:
-            question_list.append(match.group(1).strip())
-
-    return question_list
-
 # 页面布局
 st.title("Excel 数据查询系统 🔍")
 
@@ -75,39 +56,21 @@ if st.session_state.auth:
             st.dataframe(df)
 
         st.subheader("数据查询")
-        input_text = st.text_area("请输入多个题干内容（每个题干之间请用换行符分隔）：")
+        search_input = st.text_input("请输入要查询的题干关键词：")
 
-        if input_text:
-            # 提取题干内容
-            extracted_questions = extract_question_content(input_text)
-
-            # 查找包含在题干中的每个提取的题干
+        if search_input:
             if '题干' in df.columns and '答案(多选用英文逗号分隔)' in df.columns:
-                matching_rows = []
+                result = df[df['题干'].astype(str).str.contains(search_input, case=False, na=False, regex=False)]
 
-                # 对每个提取的题干进行匹配查询
-                for question in extracted_questions:
-                    # 对每个题干内容进行模糊查询
-                    result = df[df['题干'].astype(str).str.contains(question, case=False, na=False)]
-
-                    # 收集匹配的行
-                    matching_rows.append(result)
-
-                # 合并所有匹配结果
-                if matching_rows:
-                    final_result = pd.concat(matching_rows).drop_duplicates()
-
-                    if not final_result.empty:
-                        st.success(f"查询成功！找到以下匹配结果：")
-                        for _, row in final_result.iterrows():
-                            st.markdown(f"""
-                            **题干**: {row['题干']}  
-                            **答案**: {row['答案(多选用英文逗号分隔)']}  
-                            """)
-                    else:
-                        st.warning("未找到匹配结果，请尝试其他题干内容")
+                if not result.empty:
+                    st.success("查询成功！找到以下匹配结果：")
+                    for _, row in result.iterrows():
+                        st.markdown(f"""
+                        **题干**: {row['题干']}  
+                        **答案**: {row['答案(多选用英文逗号分隔)']}  
+                        """)
                 else:
-                    st.warning("未找到匹配结果，请尝试其他题干内容")
+                    st.warning("未找到匹配结果，请尝试其他关键词")
             else:
                 st.error("数据中缺少 '题干' 或 '答案(多选用英文逗号分隔)' 列，无法执行查询。请检查数据文件。")
     else:
@@ -122,5 +85,5 @@ st.sidebar.markdown("""
 1. 确保您的 Excel 文件包含 '题干' 和 '答案(多选用英文逗号分隔)' 两列。
 2. 将文件上传到 Google Drive 并设置共享。
 3. 替换代码中的文件 ID。
-4. 输入题干内容，支持多个题干查询，每个题干内容之间请使用换行符分隔。
+4. 输入要查询的题干关键词，支持模糊查询。
 """)
