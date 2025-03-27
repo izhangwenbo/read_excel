@@ -56,7 +56,7 @@ if st.session_state.auth:
             st.dataframe(df)
 
         st.subheader("数据查询")
-        search_input = st.text_input("请输入要查询的题干关键词：")
+        search_input = st.text_input("请输入要查询的题干内容：")
 
         if search_input:
             if '题干' in df.columns and '答案(多选用英文逗号分隔)' in df.columns:
@@ -85,5 +85,5 @@ st.sidebar.markdown("""
 1. 确保您的 Excel 文件包含 '题干' 和 '答案(多选用英文逗号分隔)' 两列。
 2. 将文件上传到 Google Drive 并设置共享。
 3. 替换代码中的文件 ID。
-4. 输入要查询的题干关键词，支持模糊查询。
+4. 输入要查询的题干内容即可获取对应的答案。
 """)
