@@ -1,28 +1,26 @@
 import streamlit as st
 import pandas as pd
 
-
 # 认证逻辑封装
 def check_password():
     correct_pass = st.secrets.get("PASSWORD", "")
 
-    # 如果 session_state 没有存储认证状态
+    # 如果 session_state 没有存储认证状态，进行密码验证
     if "auth" not in st.session_state:
+        st.session_state.auth = False  # 初始化 session_state.auth 为 False
+
+    # 如果用户没有认证，要求输入密码
+    if not st.session_state.auth:
         password = st.text_input("请输入访问密码：", type="password")
         if password == correct_pass:
-            st.session_state.auth = True
+            st.session_state.auth = True  # 认证成功
+            st.success("密码正确，访问成功！")
         elif password != "":
             st.error("密码错误，禁止访问")
-            st.stop()
-
-    elif st.session_state.auth is False:
-        st.error("认证失败，禁止访问")
-        st.stop()
-
+            st.stop()  # 停止继续执行，确保认证失败时无法加载数据
 
 # 调用密码验证
 check_password()
-
 
 # 加载数据函数
 def load_data():
@@ -35,7 +33,6 @@ def load_data():
     except Exception as e:
         st.error(f"加载数据时发生错误: {e}")
         return pd.DataFrame()
-
 
 # 页面布局
 st.title("Excel 数据查询系统 🔍")
