@@ -5,16 +5,14 @@ import pandas as pd
 # 读取云端 Excel 文件（示例使用 Google Drive）
 def load_data():
     try:
-        # 替换为你的 Google Drive 文件 ID（在分享链接中获取）
         file_id = "1iqOn3l7PhnYTBImFsr-iT56So37r01FN"
         url = f"https://drive.google.com/uc?export=download&id={file_id}"
         df = pd.read_excel(url)
-        # 去除列名的前后空格（防止因空格导致 KeyError）
         df.columns = df.columns.str.strip()
         return df
     except Exception as e:
         st.error(f"加载数据时发生错误: {e}")
-        return pd.DataFrame()  # 返回空 DataFrame，防止后续操作崩溃
+        return pd.DataFrame()
 
 # 页面布局
 st.title("Excel 数据查询系统 🔍")
@@ -23,25 +21,22 @@ st.title("Excel 数据查询系统 🔍")
 df = load_data()
 
 if not df.empty:
-    # 显示原始数据（可选）
     with st.expander("查看完整数据"):
         st.dataframe(df)
 
-    # 查询功能
     st.subheader("数据查询")
     search_input = st.text_input("请输入要查询的B列内容：")
 
     if search_input:
-        if '类型' in df.columns and '事件名称' in df.columns:
-            # 执行查询
-            result = df[df['类型'].astype(str).str.contains(search_input, case=False)]
+        if '题干' in df.columns and '答案(多选用英文逗号分隔)' in df.columns:
+            result = df[df['题干'].astype(str).str.contains(search_input, case=False)]
 
             if not result.empty:
                 st.success("查询成功！找到以下匹配结果：")
                 for _, row in result.iterrows():
                     st.markdown(f"""
-                    **B列内容**: {row['类型']}  
-                    **C列答案**: {row['事件名称']}  
+                    **B列内容**: {row['题干']}  
+                    **I列答案**: {row['答案(多选用英文逗号分隔)']}  
                     """)
             else:
                 st.warning("未找到匹配结果，请尝试其他关键词")
