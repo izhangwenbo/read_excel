@@ -1,55 +1,58 @@
 # *coding:utf-8 *
-import streamlit as st
-import pandas as pd
+from apscheduler.schedulers.blocking import BlockingScheduler
+from datetime import datetime
+import requests
 
-# 读取云端 Excel 文件（示例使用 Google Drive）
-def load_data():
+SCKEY = "165Nlke-27hsRVmoLj_mm3eye1oAsT4xm"
+URL = f"https://sctapi.ftqq.com/{SCKEY}.send"
+
+
+def send_wechat(title, content):
+    """
+    发送消息到微信
+    :param title: 消息标题
+    :param content: 消息内容
+    """
+    params = {
+        "title": title,
+        "desp": content
+    }
     try:
-        file_id = "1iqOn3l7PhnYTBImFsr-iT56So37r01FN"
-        url = f"https://drive.google.com/uc?export=download&id={file_id}"
-        df = pd.read_excel(url)
-        df.columns = df.columns.str.strip()
-        return df
-    except Exception as e:
-        st.error(f"加载数据时发生错误: {e}")
-        return pd.DataFrame()
-
-# 页面布局
-st.title("Excel 数据查询系统 🔍")
-
-# 加载数据
-df = load_data()
-
-if not df.empty:
-    with st.expander("查看完整数据"):
-        st.dataframe(df)
-
-    st.subheader("数据查询")
-    search_input = st.text_input("请输入要查询的B列内容：")
-
-    if search_input:
-        if '题干' in df.columns and '答案(多选用英文逗号分隔)' in df.columns:
-            result = df[df['题干'].astype(str).str.contains(search_input, case=False)]
-
-            if not result.empty:
-                st.success("查询成功！找到以下匹配结果：")
-                for _, row in result.iterrows():
-                    st.markdown(f"""
-                    **B列内容**: {row['题干']}  
-                    **I列答案**: {row['答案(多选用英文逗号分隔)']}  
-                    """)
-            else:
-                st.warning("未找到匹配结果，请尝试其他关键词")
+        response = requests.get(URL, params=params)
+        if response.json().get("code") == 0:
+            print("微信通知发送成功")
         else:
-            st.error("数据中缺少 'B' 列或 'C' 列，无法执行查询。请检查数据文件。")
-else:
-    st.error("数据加载失败，请检查文件链接或格式。")
+            print("发送失败:", response.text)
+    except Exception as e:
+        print("请求异常:", str(e))
 
-# 侧边栏说明
-st.sidebar.markdown("""
-### 使用说明
-1. 确保您的 Excel 文件包含 A、B、C、D 四列
-2. 将文件上传到 Google Drive 并设置共享
-3. 替换代码中的文件 ID
-4. 输入要查询的 B 列内容即可获取 C 列答案
-""")
+
+def scheduled_task():
+    """定时任务要执行的操作"""
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    title = "张先生记得打卡下班！"
+    content = f"⏰ 张先生记得打卡下班！\n\n当前时间：{current_time}\n这是来自Python的定时通知"
+    send_wechat(title, content)
+
+
+if __name__ == "__main__":
+    # 创建调度器
+    scheduler = BlockingScheduler()
+
+    # 添加定时任务（这里设置为每天8:30执行）
+    scheduler.add_job(
+        scheduled_task,
+        'cron',
+        hour=16,
+        minute=15,
+        timezone='Asia/Shanghai'
+    )
+
+    # 也可以使用间隔触发（例如每60秒执行一次）
+    # scheduler.add_job(scheduled_task, 'interval', seconds=60)
+
+    try:
+        print("定时任务已启动...")
+        scheduler.start()
+    except (KeyboardInterrupt, SystemExit):
+        print("定时任务已停止")
