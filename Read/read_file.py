@@ -32,16 +32,16 @@ if not df.empty:
     search_input = st.text_input("请输入要查询的B列内容：")
 
     if search_input:
-        if 'B' in df.columns and 'C' in df.columns:
+        if '类型' in df.columns and '事件名称' in df.columns:
             # 执行查询
-            result = df[df['B'].astype(str).str.contains(search_input, case=False)]
+            result = df[df['类型'].astype(str).str.contains(search_input, case=False)]
 
             if not result.empty:
                 st.success("查询成功！找到以下匹配结果：")
                 for _, row in result.iterrows():
                     st.markdown(f"""
-                    **B列内容**: {row['B']}  
-                    **C列答案**: {row['C']}  
+                    **B列内容**: {row['类型']}  
+                    **C列答案**: {row['事件名称']}  
                     """)
             else:
                 st.warning("未找到匹配结果，请尝试其他关键词")
