@@ -56,6 +56,12 @@ st.title("Excel 数据查询系统 🔍")
 
 check_password()  # 先进行密码检查
 
+# 初始化 session_state 变量，避免出现 AttributeError
+if 'selected_file' not in st.session_state:
+    st.session_state.selected_file = None
+if 'df' not in st.session_state:
+    st.session_state.df = pd.DataFrame()
+
 if st.session_state.auth:
     # 显示文件选择按钮
     st.subheader("请选择要查询的文件")
@@ -69,7 +75,7 @@ if st.session_state.auth:
 
     if selected_file:
         # 加载选中的文件
-        if 'df' not in st.session_state or st.session_state.selected_file != selected_file:
+        if st.session_state.selected_file != selected_file:
             # 如果没有加载过这个文件或者是不同的文件，重新加载数据
             st.session_state.selected_file = selected_file
             st.session_state.df = load_data(selected_file)
