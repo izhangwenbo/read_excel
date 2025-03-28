@@ -6,8 +6,10 @@ import re
 def check_password():
     correct_pass = st.secrets.get("PASSWORD", "")
 
+    # 初始化 session_state 中的 auth 和 attempts 属性
     if "auth" not in st.session_state:
         st.session_state.auth = False
+    if "attempts" not in st.session_state:
         st.session_state.attempts = 0
 
     if not st.session_state.auth:
@@ -45,6 +47,8 @@ def extract_questions(text):
 
 
 st.title("Excel 数据查询系统 🔍")
+
+check_password()  # 先进行密码检查
 
 if st.session_state.auth:
     if 'df' not in st.session_state:
