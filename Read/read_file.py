@@ -6,7 +6,6 @@ import re
 def check_password():
     correct_pass = st.secrets.get("PASSWORD", "")
 
-    # 初始化 session_state 中的 auth 和 attempts 属性
     if "auth" not in st.session_state:
         st.session_state.auth = False
     if "attempts" not in st.session_state:
@@ -40,10 +39,10 @@ def load_data():
 
 
 def extract_questions(text):
-    # 提取题目的函数，通过正则表达式捕获题干内容
-    pattern = r'(\d+)\.\s*(.*?)\s*(?:学生答案：|$)'
-    questions = re.findall(pattern, text)
-    return questions
+    # 更新正则表达式以支持多行输入
+    pattern = r'(\d+)\.\s*(.*?)(?=（|学生答案：|$)'  # 捕获数字+题目内容，直到遇到 "（" 或 "学生答案："
+    questions = re.findall(pattern, text, re.MULTILINE)
+    return [q[1].strip() for q in questions]  # 只返回题干内容
 
 
 st.title("Excel 数据查询系统 🔍")
@@ -72,8 +71,8 @@ if st.session_state.auth:
                     st.success(f"共找到 {len(questions)} 道题目，开始查询...")
 
                     # 循环查询每一道题
-                    for q_id, q_text in questions:
-                        clean_q = ' '.join(q_text.strip().split())
+                    for q_text in questions:
+                        clean_q = ' '.join(q_text.strip().split())  # 清理题干的空格
                         result = df[df['题干'].str.contains(clean_q, case=False, na=False)]
 
                         if not result.empty:
