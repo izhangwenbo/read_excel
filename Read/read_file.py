@@ -18,13 +18,12 @@ def check_password():
         password = st.text_input("请输入访问密码：", type="password")
 
         if password == correct_pass:
-            st.session_state.auth = True 
+            st.session_state.auth = True
             st.success("密码正确，访问成功！")
         elif password != "":
-            st.session_state.attempts += 1 
+            st.session_state.attempts += 1
             st.error(f"密码错误，剩余尝试次数: {3 - st.session_state.attempts}")
 
-check_password()
 
 def load_data():
     try:
@@ -36,6 +35,14 @@ def load_data():
     except Exception as e:
         st.error(f"加载数据时发生错误: {e}")
         return pd.DataFrame()
+
+
+def extract_questions(text):
+    # 提取题目的函数，通过正则表达式捕获题干内容
+    pattern = r'(\d+)\.\s*(.*?)\s*(?:学生答案：|$)'
+    questions = re.findall(pattern, text)
+    return questions
+
 
 st.title("Excel 数据查询系统 🔍")
 
@@ -51,22 +58,20 @@ if st.session_state.auth:
         st.subheader("输入待查询的题目内容")
 
         user_input = st.text_area("请在此处粘贴题目内容（支持多题批量查询）", height=200)
-        
+
         if st.button("开始查询"):
             if user_input:
-                def extract_questions(text):
-                    pattern = r'\d+\.\s*(.*?)[？?]' 
-                    questions = re.findall(pattern, text)
-                    return questions
-
+                # 提取题干信息
                 questions = extract_questions(user_input)
 
                 if questions:
                     st.success(f"共找到 {len(questions)} 道题目，开始查询...")
 
-                    for q in questions:
-                        clean_q = ' '.join(q.strip().split())
+                    # 循环查询每一道题
+                    for q_id, q_text in questions:
+                        clean_q = ' '.join(q_text.strip().split())
                         result = df[df['题干'].str.contains(clean_q, case=False, na=False)]
+
                         if not result.empty:
                             answer = result.iloc[0]['答案(多选用英文逗号分隔)']
                             st.markdown(f"""
