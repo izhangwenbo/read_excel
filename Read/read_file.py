@@ -77,11 +77,12 @@ if st.session_state.auth:
 
                         if not result.empty:
                             answer = result.iloc[0]['答案(多选用英文逗号分隔)']
+                            # 设置字体大小为 18px，并控制返回结果的样式
                             st.markdown(f"""
-                            **题目**: {clean_q}  
-                            **答案**: {answer}  
-                            ---
-                            """)
+                            <p style="font-size:18px;"><b>题目:</b> {clean_q}</p>
+                            <p style="font-size:18px;"><b>答案:</b> {answer}</p>
+                            <hr style="border: 1px solid #ddd;"/>
+                            """, unsafe_allow_html=True)
                         else:
                             st.warning(f"未找到匹配题目: {clean_q}")
                 else:
