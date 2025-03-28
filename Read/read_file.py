@@ -2,27 +2,6 @@ import streamlit as st
 import pandas as pd
 import re
 
-# 假设文件ID字典，文件名映射到 Google Drive 的文件 ID
-file_ids = {
-    "计算机系统原理": "165Nlke-27hsRVmoLj_mm3eye1oAsT4xm",
-    "工作簿1": "1iqOn3l7PhnYTBImFsr-iT56So37r01FN",
-    # 添加其他文件名称与ID的映射
-}
-
-def load_data(file_name):
-    try:
-        file_id = file_ids.get(file_name, "")
-        if not file_id:
-            st.error(f"未找到文件: {file_name}")
-            return pd.DataFrame()
-
-        url = f"https://drive.google.com/uc?export=download&id={file_id}"
-        df = pd.read_excel(url)
-        df.columns = df.columns.str.strip()  # 清理列名空格
-        return df
-    except Exception as e:
-        st.error(f"加载数据时发生错误: {e}")
-        return pd.DataFrame()
 
 def check_password():
     correct_pass = st.secrets.get("PASSWORD", "")
@@ -46,81 +25,72 @@ def check_password():
             st.session_state.attempts += 1
             st.error(f"密码错误，剩余尝试次数: {3 - st.session_state.attempts}")
 
+
+def load_data():
+    try:
+        file_id = "165Nlke-27hsRVmoLj_mm3eye1oAsT4xm"
+        url = f"https://drive.google.com/uc?export=download&id={file_id}"
+        df = pd.read_excel(url)
+        df.columns = df.columns.str.strip()
+        return df
+    except Exception as e:
+        st.error(f"加载数据时发生错误: {e}")
+        return pd.DataFrame()
+
+
 def extract_questions(text):
     # 更新正则表达式以支持多行输入
     pattern = r'(\d+)\.\s*(.*?)(?=（|学生答案：|$)'  # 捕获数字+题目内容，直到遇到 "（" 或 "学生答案："
     questions = re.findall(pattern, text, re.MULTILINE)
     return [q[1].strip() for q in questions]  # 只返回题干内容
 
+
 st.title("Excel 数据查询系统 🔍")
 
 check_password()  # 先进行密码检查
 
-# 初始化 session_state 变量，避免出现 AttributeError
-if 'selected_file' not in st.session_state:
-    st.session_state.selected_file = None
-if 'df' not in st.session_state:
-    st.session_state.df = pd.DataFrame()
-
 if st.session_state.auth:
-    # 只有在没有选择文件时，才显示文件选择按钮
-    if st.session_state.selected_file is None:
-        st.subheader("请选择要查询的文件")
-        
-        # 为每个文件创建按钮，点击后加载对应的文件
-        selected_file = None
-        for file_name in file_ids.keys():
-            if st.button(f"选择 {file_name}"):
-                selected_file = file_name
-                st.session_state.selected_file = selected_file  # 记录选中的文件
-                break  # 只允许选一个文件
+    if 'df' not in st.session_state:
+        st.session_state.df = load_data()
+    df = st.session_state.df
 
-        # 加载选中的文件
-        if selected_file:
-            st.session_state.df = load_data(selected_file)
-        
-    else:
-        # 如果已经选择了文件，就不再显示文件选择按钮，直接进入查询界面
-        st.write(f"已选择文件: {st.session_state.selected_file}")
-        df = st.session_state.df
+    if not df.empty:
+        with st.expander("查看完整数据"):
+            st.dataframe(df)
 
-        if not df.empty:
-            with st.expander("查看完整数据"):
-                st.dataframe(df)
+        st.subheader("输入待查询的题目内容")
 
-            st.subheader("输入待查询的题目内容")
+        user_input = st.text_area("请在此处粘贴题目内容（支持多题批量查询）", height=200)
 
-            user_input = st.text_area("请在此处粘贴题目内容（支持多题批量查询）", height=200)
+        if st.button("开始查询"):
+            if user_input:
+                # 提取题干信息
+                questions = extract_questions(user_input)
 
-            if st.button("开始查询"):
-                if user_input:
-                    # 提取题干信息
-                    questions = extract_questions(user_input)
+                if questions:
+                    st.success(f"共找到 {len(questions)} 道题目，开始查询...")
 
-                    if questions:
-                        st.success(f"共找到 {len(questions)} 道题目，开始查询...")
+                    # 循环查询每一道题
+                    for q_text in questions:
+                        clean_q = ' '.join(q_text.strip().split())  # 清理题干的空格
+                        result = df[df['题干'].str.contains(clean_q, case=False, na=False)]
 
-                        # 循环查询每一道题
-                        for q_text in questions:
-                            clean_q = ' '.join(q_text.strip().split())  # 清理题干的空格
-                            result = df[df['题干'].str.contains(clean_q, case=False, na=False)]
-
-                            if not result.empty:
-                                answer = result.iloc[0]['答案(多选用英文逗号分隔)']
-                                # 设置字体大小为 18px，并控制返回结果的样式
-                                st.markdown(f"""
-                                <p style="font-size:18px;"><b>题目:</b> {clean_q}</p>
-                                <p style="font-size:18px;"><b>答案:</b> {answer}</p>
-                                <hr style="border: 1px solid #ddd;"/>
-                                """, unsafe_allow_html=True)
-                            else:
-                                st.warning(f"未找到匹配题目: {clean_q}")
-                    else:
-                        st.error("未检测到有效题目格式，请确保题目以 '数字. 内容' 格式输入")
+                        if not result.empty:
+                            answer = result.iloc[0]['答案(多选用英文逗号分隔)']
+                            # 设置字体大小为 18px，并控制返回结果的样式
+                            st.markdown(f"""
+                            <p style="font-size:18px;"><b>题目:</b> {clean_q}</p>
+                            <p style="font-size:18px;"><b>答案:</b> {answer}</p>
+                            <hr style="border: 1px solid #ddd;"/>
+                            """, unsafe_allow_html=True)
+                        else:
+                            st.warning(f"未找到匹配题目: {clean_q}")
                 else:
-                    st.warning("请输入内容后再点击查询")
-        else:
-            st.error("数据加载失败")
+                    st.error("未检测到有效题目格式，请确保题目以 '数字. 内容' 格式输入")
+            else:
+                st.warning("请输入内容后再点击查询")
+    else:
+        st.error("数据加载失败")
 else:
     st.warning("请输入密码访问")
 
