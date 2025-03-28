@@ -63,23 +63,25 @@ if 'df' not in st.session_state:
     st.session_state.df = pd.DataFrame()
 
 if st.session_state.auth:
-    # 显示文件选择按钮
-    st.subheader("请选择要查询的文件")
-    
-    # 为每个文件创建按钮，点击后加载对应的文件
-    selected_file = None
-    for file_name in file_ids.keys():
-        if st.button(f"选择 {file_name}"):
-            selected_file = file_name
-            break  # 只允许选一个文件
+    # 只有在没有选择文件时，才显示文件选择按钮
+    if st.session_state.selected_file is None:
+        st.subheader("请选择要查询的文件")
+        
+        # 为每个文件创建按钮，点击后加载对应的文件
+        selected_file = None
+        for file_name in file_ids.keys():
+            if st.button(f"选择 {file_name}"):
+                selected_file = file_name
+                st.session_state.selected_file = selected_file  # 记录选中的文件
+                break  # 只允许选一个文件
 
-    if selected_file:
         # 加载选中的文件
-        if st.session_state.selected_file != selected_file:
-            # 如果没有加载过这个文件或者是不同的文件，重新加载数据
-            st.session_state.selected_file = selected_file
+        if selected_file:
             st.session_state.df = load_data(selected_file)
-
+        
+    else:
+        # 如果已经选择了文件，就不再显示文件选择按钮，直接进入查询界面
+        st.write(f"已选择文件: {st.session_state.selected_file}")
         df = st.session_state.df
 
         if not df.empty:
